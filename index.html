@@ -1,0 +1,221 @@
+<!--
+	TODO: Sort by points, move admin panel to another page, select who gets the points
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, shrink-to-fit=no"
+		/>
+		<meta name="description" content="" />
+		<meta name="author" content="" />
+
+		<title>Points</title>
+
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<script
+			src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+			integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+			integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+			crossorigin="anonymous"
+		></script>
+		<script
+			src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+			integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+			crossorigin="anonymous"
+		></script>
+		<link
+			rel="stylesheet"
+			href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+			integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+			crossorigin="anonymous"
+		/>
+		<script src="vendor/jsstore.js"></script>
+	</head>
+
+	<body>
+		<!-- Navigation -->
+		<nav class="navbar navbar-expand-lg navbar-dark bg-dark static-top">
+			<div class="container">
+				<a class="navbar-brand" href="#">Tech Points</a>
+				<button
+					class="navbar-toggler"
+					type="button"
+					data-toggle="collapse"
+					data-target="#navbarResponsive"
+					aria-controls="navbarResponsive"
+					aria-expanded="false"
+					aria-label="Toggle navigation"
+				>
+					<span class="navbar-toggler-icon"></span>
+				</button>
+				<div class="collapse navbar-collapse" id="navbarResponsive">
+					<ul class="navbar-nav ml-auto">
+						<li class="nav-item active">
+							<a class="nav-link" href="#"
+								>Home
+								<span class="sr-only">(current)</span>
+							</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="#">Login</a>
+						</li>
+					</ul>
+				</div>
+			</div>
+		</nav>
+
+		<!-- Page Content -->
+		<div class="container">
+			<div class="row">
+				<div class="col-lg-12 text-center">
+					<h1 class="mt-5">Scores</h1>
+					<p class="lead">
+						Complete more repairs to get more points!
+					</p>
+					<div id="wrapper"></div>
+				</div>
+				<div class="col-lg-12 text-center" id="controlButtons">
+					<h1>Admin Panel</h1>
+					<p>This will be a seperate page with a login</p>
+					<hr />
+					<div>
+						<div id="wrapper2"></div>
+						<br />
+						<button class="btn btn-warning" onclick="addX(1)">
+							Employee +1
+						</button>
+						<button class="btn btn-warning" onclick="addX(5)">
+							Employee +5
+						</button>
+						<button class="btn btn-warning" onclick="addX(10)">
+							Employee +10
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			var selectedEmployee = "REE";
+			var dbName = "Users";
+			function getDbSchema() {
+				var tblUsers = {
+					name: "Users",
+					columns: {
+						// Here "Id" is name of column
+						id: { primaryKey: true, autoIncrement: true },
+						firstName: { notNull: true, dataType: "string" },
+						lastName: { notNull: true, dataType: "string" },
+						points: { notNull: true, dataType: "number" },
+					},
+				};
+				var db = {
+					name: dbName,
+					tables: [tblUsers],
+				};
+				return db;
+			}
+			// executing jsstore inside a web worker
+			var connection = new JsStore.Connection(
+				new Worker("vendor/jsstore.worker.js")
+			);
+
+			async function initJsStore() {
+				var database = getDbSchema();
+				const isDbCreated = await connection.initDb(database);
+				if (isDbCreated === true) {
+					console.log("db created");
+					// here you can prefill database with some data
+					var value = {
+						firstName: "Steve",
+						lastName: "Jobs",
+						points: 0,
+					};
+					var value2 = {
+						firstName: "Steve",
+						lastName: "Wozniak",
+						points: 0,
+					};
+					var value3 = {
+						firstName: "Steve",
+						lastName: "Buscemi",
+						points: 21,
+					};
+					var noOfDataInserted = await connection.insert({
+						into: "Users",
+						values: [value, value2, value3],
+					});
+					if (noOfDataInserted > 0) {
+						alert("Initialization Complete");
+						location.reload();
+					}
+				} else {
+					console.log("db opened");
+					// results will be array of objects
+					var results = await connection.select({
+						from: "Users",
+						order: {
+							by: "points",
+							type: "desc",
+						},
+					});
+					var dropdown =
+						"<select id='currentEmployee'name='currentEmployee'style='height: 25px; width: 190px;'onchange='Class(this.id)'><option id='REE'>Select an Employee</option>";
+					var mytable =
+						"<table class='table'><th>First Name</th><th>Last Name</th><th>Points</th>";
+					for (var x = 0; x < results.length; x++) {
+						mytable += "<tr><td>" + results[x].firstName + "</td>";
+						dropdown +=
+							"<option id='" +
+							results[x].lastName +
+							"'>" +
+							results[x].firstName +
+							" " +
+							results[x].lastName +
+							"</option>";
+						mytable += "<td>" + results[x].lastName + "</td>";
+						mytable += "<td>" + results[x].points + "</td></tr>";
+					}
+					mytable += "</table></br>";
+					dropdown += "</select></br>";
+					$("#wrapper")[0].innerHTML = mytable;
+					$("#wrapper2")[0].innerHTML = dropdown;
+				}
+			}
+			initJsStore();
+			async function addX(x) {
+				if (selectedEmployee == "REE") {
+					window.alert("Please Select an Employee");
+				}
+				var emp = await connection.select({
+					from: "Users",
+					where: {
+						lastName: selectedEmployee,
+					},
+				});
+				var rowsUpdated = await connection.update({
+					in: "Users",
+					where: {
+						lastName: selectedEmployee,
+					},
+					set: {
+						points: emp[0].points + x,
+					},
+				});
+				location.reload();
+			}
+			function Class(str) {
+				var select = document.getElementById("currentEmployee");
+				var option = select.options[select.selectedIndex];
+				selectedEmployee = option.id;
+			}
+		</script>
+	</body>
+</html>
